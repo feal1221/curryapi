@@ -2,20 +2,30 @@ package com.curry.project.result;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
-//@Service
+@Service
 public class ResultService {
 
-//    @Autowired
+    @Autowired
     private ResultRepository repository;
 
     // 根據 ID 取得結果
-    public ResultVo getResultById(String id) {
-        return repository.findById(id).orElse(null);
+//    public ResultVo getResultById(String id) {
+//        return repository.findById(id).orElse(null);
+//    }
+
+    @Transactional
+    public ResultVo saveResult(ResultVo result) {
+        return repository.save(result);
     }
 
+    public List<ResultVo> findAllResults() {
+        return repository.findAll();
+    }
     // 模擬存入測驗結果的方法（實際測驗結束後會呼叫這個）
 //    public UUID saveResult(String flowerName, String imgUrl) {
 //        ResultVo result = new ResultVo();
