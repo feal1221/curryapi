@@ -3,6 +3,8 @@ target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+# GCP Keys
+gcp-key.json
 
 ### STS ###
 .apt_generated
