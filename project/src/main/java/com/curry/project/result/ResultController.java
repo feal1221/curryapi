@@ -18,7 +18,8 @@ import java.util.List;
         "http://localhost:3000",
         "https://curryui.vercel.app",
         "https://housefindyourcurry.tw",
-        "https://test.housefindyourcurry.tw"
+        "https://test.housefindyourcurry.tw",
+        "https://api.housefindyourcurry.tw",
 })
 public class ResultController {
 
@@ -34,10 +35,10 @@ public class ResultController {
 
     @Operation(summary = "匯出Excel", description = "匯出Excel")
     @GetMapping("/results/exportExcel")
-    public void exportExcel(HttpServletResponse response) {
+    public void exportExcel() {
         try {
-            resultService.exportExcel(response);
-        } catch (IOException e) {
+            resultService.exportExcel();
+        } catch (Exception e) {
             // 這裡可以導向錯誤處理或回傳 JSON 錯誤訊息
             e.printStackTrace();
         }
