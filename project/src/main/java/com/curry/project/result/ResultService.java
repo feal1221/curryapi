@@ -61,7 +61,7 @@ public class ResultService {
             }
 
             // 取得所有資料用於 Excel
-            List<ResultVo> results = repository.findAll();
+            List<ResultVo> results = repository.findAllByOrderByCreatedTimeAsc();
             
             // 取得當下台北時間
             OffsetDateTime now = OffsetDateTime.now(ZoneId.of("Asia/Taipei"));
@@ -111,8 +111,6 @@ public class ResultService {
                 if (result.getCreatedTime() != null) {
                     // 格式化為字串，安全又美觀
                     dateCell.setCellValue(result.getCreatedTime().atZoneSameInstant(ZoneId.of("Asia/Taipei")).format(formatter));
-//                    dateCell.setCellValue(result.getCreatedTime().plusHours(8).format(formatter));
-
                 } else {
                     dateCell.setCellValue("-"); // 或留白
                 }

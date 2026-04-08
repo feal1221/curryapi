@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface ResultRepository extends JpaRepository<ResultVo, String>, JpaSpecificationExecutor<ResultVo> {
     List<ResultVo> findByCreatedTimeBetweenOrderByCreatedTimeAsc(OffsetDateTime start, OffsetDateTime end);
+    List<ResultVo> findAllByOrderByCreatedTimeAsc();
 }

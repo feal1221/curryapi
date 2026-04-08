@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
         "https://housefindyourcurry.tw",
         "https://test.housefindyourcurry.tw",
         "https://api.housefindyourcurry.tw",
+        "https://hello-world-1-xm5omx4rva-de.a.run.app"
 })
 public class GcpController {
 

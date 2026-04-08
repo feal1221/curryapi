@@ -20,6 +20,7 @@ import java.util.List;
         "https://housefindyourcurry.tw",
         "https://test.housefindyourcurry.tw",
         "https://api.housefindyourcurry.tw",
+        "https://hello-world-1-xm5omx4rva-de.a.run.app"
 })
 public class ResultController {
 
