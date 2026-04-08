@@ -26,8 +26,8 @@ public class GcpController {
     @Value("${app.internal.secret}")
     private String internalSecret;
 
-    @PostMapping("/monthly-export")
-    public String triggerMonthlyExport(
+    @PostMapping("/weekly-export")
+    public String triggerWeeklyExport(
             @RequestHeader(value = "X-Internal-Secret", required = false) String incomingSecret
     ) {
         if (incomingSecret == null || !incomingSecret.equals(internalSecret)) {

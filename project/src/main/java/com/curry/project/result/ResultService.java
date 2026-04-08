@@ -2,14 +2,12 @@ package com.curry.project.result;
 
 
 import jakarta.mail.internet.MimeMessage;
-import jakarta.mail.internet.MimeUtility;
-import jakarta.servlet.http.HttpServletResponse;
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.streaming.SXSSFRow;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -18,14 +16,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 public class ResultService {
@@ -35,6 +32,9 @@ public class ResultService {
 
     @Autowired
     private JavaMailSender mailSender;
+
+    @Value("${app.export.recipient}")
+    private String exportRecipient;
 
 
     @Transactional
@@ -60,7 +60,31 @@ public class ResultService {
                 headerRow.createCell(i).setCellValue(columnNames[i]);
             }
 
+            // 取得所有資料用於 Excel
             List<ResultVo> results = repository.findAll();
+            
+            // 取得當下台北時間
+            OffsetDateTime now = OffsetDateTime.now(ZoneId.of("Asia/Taipei"));
+            
+            // 計算本週一 00:00:00 作為結束時間 (避免算到週一 00:00~08:00，下週執行時又重複計算)
+            OffsetDateTime thisMondayStart = now.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                    .toLocalDate()
+                    .atStartOfDay(ZoneId.of("Asia/Taipei"))
+                    .toOffsetDateTime();
+                    
+            // 計算上週一 00:00:00 作為起始時間
+            OffsetDateTime lastMondayStart = thisMondayStart.minusWeeks(1);
+            
+            // 配合資料庫時間是 +0 (UTC)，將查詢區間時間明確轉換為 UTC (+0)
+            OffsetDateTime startUtc = lastMondayStart.withOffsetSameInstant(java.time.ZoneOffset.UTC);
+            OffsetDateTime endUtc = thisMondayStart.withOffsetSameInstant(java.time.ZoneOffset.UTC);
+            
+            // 由於 between 預設為包含上下界 (<= end)，為了嚴謹，將結束時間扣減1毫秒，變為週日 23:59:59.999
+            endUtc = endUtc.minus(1, java.time.temporal.ChronoUnit.MILLIS);
+
+            List<ResultVo> weeklyResults = repository.findByCreatedTimeBetweenOrderByCreatedTimeAsc(startUtc, endUtc);
+            int weeklyCount = weeklyResults.size();
+
             int rowNum = 1;
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             String[] genderMap = {"女","男","多元"};
@@ -99,10 +123,14 @@ public class ResultService {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-        helper.setTo("riva.wang@creca.com.tw");
-        helper.setSubject("饋咖測驗遊戲活動頁專案－測驗結果excel");
-        helper.setText("您好，附件為本次活動的測驗結果 Excel 檔案，請查收。");
+        helper.setTo(exportRecipient);
         String dateStr = LocalDate.now(ZoneId.of("Asia/Taipei")).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        helper.setSubject("饋咖測驗遊戲活動頁專案－每周測驗結果匯出 (" + dateStr + ")");
+        String emailText = String.format(
+                "您好，\n\n本周新增了 %d 筆資料。\n附件為截至目前的完整測驗結果 Excel 檔案，請查收。",
+                weeklyCount
+        );
+        helper.setText(emailText);
         String fileName = "饋咖測驗遊戲活動頁專案-測驗結果" + dateStr + ".xlsx";
         helper.addAttachment(fileName, new ByteArrayResource(excelContent));
             mailSender.send(message);
