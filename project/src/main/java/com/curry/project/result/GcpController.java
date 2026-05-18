@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @CrossOrigin(origins = {
         "http://localhost:3000",
-        "https://curryui.vercel.app",
         "https://www.housefindyourcurry.tw",
         "https://test.housefindyourcurry.tw",
         "https://api.housefindyourcurry.tw",

@@ -67,23 +67,33 @@ public class ResultService {
             OffsetDateTime now = OffsetDateTime.now(ZoneId.of("Asia/Taipei"));
             
             // 計算本週一 00:00:00 作為結束時間 (避免算到週一 00:00~08:00，下週執行時又重複計算)
-            OffsetDateTime thisMondayStart = now.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                    .toLocalDate()
-                    .atStartOfDay(ZoneId.of("Asia/Taipei"))
-                    .toOffsetDateTime();
-                    
-            // 計算上週一 00:00:00 作為起始時間
-            OffsetDateTime lastMondayStart = thisMondayStart.minusWeeks(1);
-            
-            // 配合資料庫時間是 +0 (UTC)，將查詢區間時間明確轉換為 UTC (+0)
-            OffsetDateTime startUtc = lastMondayStart.withOffsetSameInstant(java.time.ZoneOffset.UTC);
-            OffsetDateTime endUtc = thisMondayStart.withOffsetSameInstant(java.time.ZoneOffset.UTC);
-            
-            // 由於 between 預設為包含上下界 (<= end)，為了嚴謹，將結束時間扣減1毫秒，變為週日 23:59:59.999
-            endUtc = endUtc.minus(1, java.time.temporal.ChronoUnit.MILLIS);
+//            OffsetDateTime thisMondayStart = now.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+//                    .toLocalDate()
+//                    .atStartOfDay(ZoneId.of("Asia/Taipei"))
+//                    .toOffsetDateTime();
+//
+//            // 計算上週一 00:00:00 作為起始時間
+//            OffsetDateTime lastMondayStart = thisMondayStart.minusWeeks(1);
+//
+//            // 配合資料庫時間是 +0 (UTC)，將查詢區間時間明確轉換為 UTC (+0)
+//            OffsetDateTime startUtc = lastMondayStart.withOffsetSameInstant(java.time.ZoneOffset.UTC);
+//            OffsetDateTime endUtc = thisMondayStart.withOffsetSameInstant(java.time.ZoneOffset.UTC);
+//
+//            // 由於 between 預設為包含上下界 (<= end)，為了嚴謹，將結束時間扣減1毫秒，變為週日 23:59:59.999
+//            endUtc = endUtc.minus(1, java.time.temporal.ChronoUnit.MILLIS);
+//
+//            List<ResultVo> weeklyResults = repository.findByCreatedTimeBetweenOrderByCreatedTimeAsc(startUtc, endUtc);
+//            int weeklyCount = weeklyResults.size();
 
-            List<ResultVo> weeklyResults = repository.findByCreatedTimeBetweenOrderByCreatedTimeAsc(startUtc, endUtc);
-            int weeklyCount = weeklyResults.size();
+//          改為每月計算方式：上月 1 號 00:00:00.000 ~ 上月最後一天 23:59:59.999
+            LocalDate firstDayOfLastMonth = now.toLocalDate().minusMonths(1).withDayOfMonth(1);
+            LocalDate firstDayOfThisMonth = now.toLocalDate().withDayOfMonth(1);
+            OffsetDateTime startUtc = firstDayOfLastMonth.atStartOfDay(ZoneId.of("Asia/Taipei")).toOffsetDateTime().withOffsetSameInstant(java.time.ZoneOffset.UTC);
+            OffsetDateTime endUtc = firstDayOfThisMonth.atStartOfDay(ZoneId.of("Asia/Taipei")).toOffsetDateTime().withOffsetSameInstant(java.time.ZoneOffset.UTC);
+//          將結束時間扣除 1 毫秒，變成上個月最後一天的 23:59:59.999
+            endUtc = endUtc.minus(1, java.time.temporal.ChronoUnit.MILLIS);
+            List<ResultVo> monthlyResults = repository.findByCreatedTimeBetweenOrderByCreatedTimeAsc(startUtc, endUtc);
+            int monthlyCount = monthlyResults.size();
 
             int rowNum = 1;
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -122,11 +132,12 @@ public class ResultService {
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
         helper.setTo(exportRecipient);
-        String dateStr = LocalDate.now(ZoneId.of("Asia/Taipei")).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        helper.setSubject("饋咖測驗遊戲活動頁專案－每周測驗結果匯出 (" + dateStr + ")");
+        String dateStr = now.toLocalDate().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String monthStr = now.toLocalDate().minusMonths(1).format(DateTimeFormatter.ofPattern("yyyy年MM月"));
+        helper.setSubject("饋咖測驗遊戲活動頁專案－"+monthStr+"測驗結果匯出");
         String emailText = String.format(
-                "您好，\n\n本周新增了 %d 筆資料。\n附件為截至目前的完整測驗結果 Excel 檔案，請查收。",
-                weeklyCount
+                "您好，\n\n上個月新增了 %d 筆資料。\n附件為截至目前的完整測驗結果 Excel 檔案，請查收。",
+                monthlyCount
         );
         helper.setText(emailText);
         String fileName = "饋咖測驗遊戲活動頁專案-測驗結果" + dateStr + ".xlsx";
